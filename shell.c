@@ -1,15 +1,46 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX_LENGTH_LINE 512
+#define LINE_MAX_LEN 512
+#define ARG_LEN LINE_MAX_LEN
 
 typedef struct process *process_t;
 typedef struct job *job_t;
+typedef enum arg_type arg_type_t;
+typedef struct arg arg_t;
 
-typedef enum arg_type_t {
-	WORD,
-	
-}
+/**
+ * arg_type - type of an argument
+ *
+ * NORMAL: argument string is a normal argument for a process
+ * PIPE: '|'
+ * INPUT_REDIRECT: '>'
+ * OUTPUT_REDIRECT: '<'
+ * BACKGROUND: '&'
+ * NONE: no argument found, default value
+ */
+enum arg_type {
+	NORMAL,
+	PIPE,
+	INPUT_REDIRECT,
+	OUTPUT_REDIRECT,
+	BACKGROUND,
+	END,
+	NONE = 0
+};
+
+/**
+ * arg - a single argument from a command line
+ *
+ * str: character content of argument
+ * type: type of argument
+ * len: length of argument
+ */
+struct arg {
+	char str[ARG_LEN];
+	arg_type_t type;
+	size_t len;
+};
 
 /**
  * process - a single process that can be executed
@@ -48,9 +79,12 @@ struct job {
 	job_t nextJob;
 };
 
-char inputLine[MAX_LENGTH_LINE];
+char inputLine[LINE_MAX_LEN];
 
 job_t firstBackgroundJob;
+
+arg_t arg;
+
 
 #define cond_free(obj)			\
 	do {				\
@@ -78,10 +112,15 @@ void destroy_job(job_t job)
  *
  * parentJob: job where the process will be added to
  * line: pointer to character where the process's arguments begin
+ *
+ * Returns -1 if parsing error occurs, number of characters read from line
+ * otherwise.
  */
 int get_process(job_t parentJob, char *line)
 {
-	
+	do {
+		get_arg(line);
+	} while (0);
 }
 
 /* Convert a command line to a job. */
@@ -92,9 +131,10 @@ job_t get_job(char *line)
 		return NULL;
 
 	char *lineRemaining = line;
+	size_t numCharsRead;
 
 	/* Get all processes from a command line. */
-	while (get_process(job, lineRemaining) == 0);
+	while (numCharsRead = get_process(job, &lineRemaining) > 0)
 
 	return 0;
 }
@@ -120,7 +160,7 @@ int main(int argc, char **argv)
 		prompt_user();
 
 		/* Get new command. */
-		if (!fgets(inputLine, MAX_LENGTH_LINE, stdin))
+		if (!fgets(inputLine, LINE_MAX_LEN, stdin))
 			return -1;
 
 		/* Parse the line to get a job. */
